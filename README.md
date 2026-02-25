@@ -1,5 +1,5 @@
 # IP:PORT Scanner 
-Port scanner build with rust and the tokio runtime. By default scans all 65535 ports.
+Port scanner built with rust and the tokio runtime. By default scans all 65535 ports.
 
 ### Usage:
 Simple scan
