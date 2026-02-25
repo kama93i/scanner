@@ -1,7 +1,16 @@
+use clap::Parser;
 use futures::future::join_all;
 use thiserror::Error;
 use tokio::net::TcpStream;
 use tokio::time::{Duration, timeout};
+
+#[derive(Parser, Debug)]
+#[command(name = "scanner")]
+#[command(about= "A fast async port scanner", long_about=None)]
+struct Args {
+    #[arg(short, long)]
+    address: String,
+}
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -29,10 +38,10 @@ async fn scan_port(addr: String, port: u32) -> Result<OpenPort, AppError> {
 
 #[tokio::main]
 async fn main() {
-    let addr = String::from("127.0.0.1");
+    let args = Args::parse();
 
     let tasks: Vec<_> = (1..=65535)
-        .map(|port| scan_port(addr.clone(), port))
+        .map(|port| scan_port(args.address.clone(), port))
         .collect();
 
     let open_ports: Vec<OpenPort> = join_all(tasks)
