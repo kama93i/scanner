@@ -1,9 +1,11 @@
+use futures::future::join_all;
 use thiserror::Error;
 use tokio::net::TcpStream;
+use tokio::time::{Duration, timeout};
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("Connection {0} refused")]
+    #[error("Connection {0}:{1} refused")]
     ConnectionError(String, u32),
 }
 
@@ -14,23 +16,35 @@ struct OpenPort {
 }
 
 async fn scan_port(addr: String, port: u32) -> Result<OpenPort, AppError> {
-    let stream = TcpStream::connect(format!("{addr}:{port}"))
-        .await
-        .map_err(|_| AppError::ConnectionError(addr.clone(), port))?;
+    timeout(
+        Duration::from_secs(1),
+        TcpStream::connect(format!("{addr}:{port}")),
+    )
+    .await
+    .map_err(|_| AppError::ConnectionError(addr.clone(), port))? // timeout error
+    .map_err(|_| AppError::ConnectionError(addr.clone(), port))?; // connection error
 
     Ok(OpenPort { addr, port })
 }
 
 #[tokio::main]
 async fn main() {
-    let mut open_ports: Vec<OpenPort> = vec![];
-    let addr: String = String::from("127.0.0.1");
-    for port in 1..65000 {
-        let response = scan_port(addr.clone(), port).await;
-        let _ = match response {
-            Ok(m) => open_ports.push(m),
-            Err(_) => (),
-        };
+    let addr = String::from("127.0.0.1");
+
+    // Spawn all 65535 tasks at once — Tokio runs them concurrently
+    let tasks: Vec<_> = (1..=65535)
+        .map(|port| scan_port(addr.clone(), port))
+        .collect();
+
+    // Wait for ALL tasks to finish, then collect the open ones
+    let open_ports: Vec<OpenPort> = join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|result| result.ok())
+        .collect();
+
+    println!("Found {} open ports:", open_ports.len());
+    for p in &open_ports {
+        println!("  {}:{}", p.addr, p.port);
     }
-    dbg!(open_ports);
 }
