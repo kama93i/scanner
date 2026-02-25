@@ -18,3 +18,6 @@ scanner -a 127.0.0.1 > scan.txt
 ```
 
 
+# TODO
+- Vervose option for when piping stdout
+- Stealth scan with pnet. Send SYN packet but dont establish TCP connection to not create logs on the victim machine.
