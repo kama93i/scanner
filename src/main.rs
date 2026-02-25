@@ -79,8 +79,9 @@ async fn main() {
         .filter_map(|result| result.ok())
         .collect();
 
-    println!("Found {} open ports:", open_ports.len());
+    eprintln!("Found {} open ports:", open_ports.len());
+    eprintln!("----------------------------");
     for p in &open_ports {
-        println!("  {}:{}", p.addr, p.port);
+        println!("{}:{}", p.addr, p.port);
     }
 }
