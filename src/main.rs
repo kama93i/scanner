@@ -31,12 +31,10 @@ async fn scan_port(addr: String, port: u32) -> Result<OpenPort, AppError> {
 async fn main() {
     let addr = String::from("127.0.0.1");
 
-    // Spawn all 65535 tasks at once — Tokio runs them concurrently
     let tasks: Vec<_> = (1..=65535)
         .map(|port| scan_port(addr.clone(), port))
         .collect();
 
-    // Wait for ALL tasks to finish, then collect the open ones
     let open_ports: Vec<OpenPort> = join_all(tasks)
         .await
         .into_iter()
