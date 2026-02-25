@@ -10,21 +10,47 @@ use tokio::time::{Duration, timeout};
 struct Args {
     #[arg(short, long)]
     address: String,
+
+    #[arg(short, long, default_value = "1-65535", value_parser = port_parser )]
+    ports: (u16, u16),
+}
+
+fn port_parser(s: &str) -> Result<(u16, u16), AppError> {
+    let split: Vec<&str> = s.split("-").collect();
+
+    if split.len() != 2 {
+        return Err(AppError::InputError(String::from("Not a valid range")));
+    }
+    let start: u16 = split[0]
+        .parse::<u16>()
+        .map_err(|_| AppError::InputError(String::from("Start value is not valid")))?;
+
+    let end: u16 = split[1]
+        .parse::<u16>()
+        .map_err(|_| AppError::InputError(String::from("End value is not valid")))?;
+
+    if start > end {
+        return Err(AppError::InputError(String::from("Not a valid range")));
+    }
+    Ok((start, end))
 }
 
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Connection {0}:{1} refused")]
-    ConnectionError(String, u32),
+    ConnectionError(String, u16),
+
+    #[error("Invalid input {0}")]
+    InputError(String),
 }
 
 #[derive(Debug)]
 struct OpenPort {
     addr: String,
-    port: u32,
+    port: u16,
 }
 
-async fn scan_port(addr: String, port: u32) -> Result<OpenPort, AppError> {
+async fn scan_port(addr: String, port: u16) -> Result<OpenPort, AppError> {
     timeout(
         Duration::from_secs(1),
         TcpStream::connect(format!("{addr}:{port}")),
@@ -36,11 +62,14 @@ async fn scan_port(addr: String, port: u32) -> Result<OpenPort, AppError> {
     Ok(OpenPort { addr, port })
 }
 
+// async fn stealth_scan(addr: String, port: u32) -> Result<OpenPort, AppError> {}
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
+    let (start, end) = args.ports;
 
-    let tasks: Vec<_> = (1..=65535)
+    let tasks: Vec<_> = (start..=end)
         .map(|port| scan_port(args.address.clone(), port))
         .collect();
 
