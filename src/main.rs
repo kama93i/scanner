@@ -2,6 +2,8 @@ mod error;
 mod models;
 mod scan;
 
+use std::time::Duration;
+
 use clap::Parser;
 use error::AppError;
 use futures::future::join_all;
@@ -44,8 +46,9 @@ async fn main() {
     let args = Args::parse();
     let (start, end) = args.ports;
 
+    let dur = Duration::from_secs(1);
     let tasks: Vec<_> = (start..=end)
-        .map(|port| scan_port(args.address.clone(), port))
+        .map(|port| scan_port(args.address.clone(), port, dur))
         .collect();
 
     let open_ports: Vec<OpenPort> = join_all(tasks)
@@ -61,6 +64,7 @@ async fn main() {
 
     eprintln!("[*] Found {} open ports:", open_ports.len());
     for p in &open_ports {
+        //Print open ports to standard output
         println!("{}:{}", p.addr, p.port);
     }
 }
