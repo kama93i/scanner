@@ -1,8 +1,12 @@
+mod error;
+mod models;
+mod scan;
+
 use clap::Parser;
+use error::AppError;
 use futures::future::join_all;
-use thiserror::Error;
-use tokio::net::TcpStream;
-use tokio::time::{Duration, timeout};
+use models::OpenPort;
+use scan::scan_port;
 
 #[derive(Parser, Debug)]
 #[command(name = "scanner")]
@@ -35,35 +39,6 @@ fn port_parser(s: &str) -> Result<(u16, u16), AppError> {
     Ok((start, end))
 }
 
-#[derive(Error, Debug)]
-pub enum AppError {
-    #[error("Connection {0}:{1} refused")]
-    ConnectionError(String, u16),
-
-    #[error("Invalid Input: {0}")]
-    InputError(String),
-}
-
-#[derive(Debug)]
-struct OpenPort {
-    addr: String,
-    port: u16,
-}
-
-async fn scan_port(addr: String, port: u16) -> Result<OpenPort, AppError> {
-    timeout(
-        Duration::from_secs(1),
-        TcpStream::connect(format!("{addr}:{port}")),
-    )
-    .await
-    .map_err(|_| AppError::ConnectionError(addr.clone(), port))? // timeout error
-    .map_err(|_| AppError::ConnectionError(addr.clone(), port))?; // connection error
-
-    Ok(OpenPort { addr, port })
-}
-
-// async fn stealth_scan(addr: String, port: u32) -> Result<OpenPort, AppError> {}
-
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
@@ -77,10 +52,14 @@ async fn main() {
         .await
         .into_iter()
         .filter_map(|result| result.ok())
+        .map(|open| {
+            // Print when an open port is found
+            eprintln!("[*] Found port {0} open", open.port);
+            open
+        })
         .collect();
 
-    eprintln!("Found {} open ports:", open_ports.len());
-    eprintln!("--------------------");
+    eprintln!("[*] Found {} open ports:", open_ports.len());
     for p in &open_ports {
         println!("{}:{}", p.addr, p.port);
     }
