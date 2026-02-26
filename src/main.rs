@@ -2,7 +2,7 @@ mod error;
 mod models;
 mod scan;
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use clap::Parser;
 use error::AppError;
@@ -19,6 +19,12 @@ struct Args {
 
     #[arg(short, long, default_value = "1-65535", value_parser = port_parser )]
     ports: (u16, u16),
+
+    #[arg(short, long, default_value = 200)]
+    timeout: u64,
+
+    #[arg(short, long, default_value_t = 1000)]
+    batch_size: usize,
 }
 
 fn port_parser(s: &str) -> Result<(u16, u16), AppError> {
@@ -40,31 +46,40 @@ fn port_parser(s: &str) -> Result<(u16, u16), AppError> {
     }
     Ok((start, end))
 }
-
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
     let (start, end) = args.ports;
+    let addr = Arc::new(args.address);
+    let dur = Duration::from_millis(args.timeout);
 
-    let dur = Duration::from_secs(1);
-    let tasks: Vec<_> = (start..=end)
-        .map(|port| scan_port(args.address.clone(), port, dur))
-        .collect();
+    eprintln!("[*] Scanning {}:{}-{}", addr, start, end);
 
-    let open_ports: Vec<OpenPort> = join_all(tasks)
-        .await
-        .into_iter()
-        .filter_map(|result| result.ok())
-        .map(|open| {
-            // Print when an open port is found
-            eprintln!("[*] Found port {0} open", open.port);
-            open
-        })
-        .collect();
+    let mut open_ports: Vec<OpenPort> = vec![];
+    let ports: Vec<u16> = (start..=end).collect();
 
-    eprintln!("[*] Found {} open ports:", open_ports.len());
+    for chunk in ports.chunks(args.batch_size) {
+        let tasks: Vec<_> = chunk
+            .iter()
+            .map(|&port| scan_port(Arc::clone(&addr), port, dur))
+            .collect();
+
+        let results: Vec<OpenPort> = join_all(tasks)
+            .await
+            .into_iter()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        for open in &results {
+            eprintln!("[*] Found port {} open", open.port);
+        }
+
+        open_ports.extend(results);
+    }
+
+    eprintln!("[*] Scan complete. Found {} open port(s)", open_ports.len());
+
     for p in &open_ports {
-        //Print open ports to standard output
         println!("{}:{}", p.addr, p.port);
     }
 }
