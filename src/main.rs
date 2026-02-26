@@ -2,7 +2,7 @@ mod error;
 mod models;
 mod scan;
 
-use std::{sync::Arc, time::Duration};
+use std::{net::IpAddr, time::Duration};
 
 use clap::Parser;
 use error::AppError;
@@ -50,7 +50,7 @@ fn port_parser(s: &str) -> Result<(u16, u16), AppError> {
 async fn main() {
     let args = Args::parse();
     let (start, end) = args.ports;
-    let addr = Arc::new(args.address);
+    let addr: IpAddr = args.address.parse().unwrap();
     let dur = Duration::from_millis(args.timeout);
 
     eprintln!("[*] Scanning {}:{}-{}", addr, start, end);
@@ -61,7 +61,7 @@ async fn main() {
     for chunk in ports.chunks(args.batch_size) {
         let tasks: Vec<_> = chunk
             .iter()
-            .map(|&port| scan_port(Arc::clone(&addr), port, dur))
+            .map(|&port| scan_port(addr, port, dur))
             .collect();
 
         let results: Vec<OpenPort> = join_all(tasks)
