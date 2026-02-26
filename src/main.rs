@@ -20,10 +20,10 @@ struct Args {
     #[arg(short, long, default_value = "1-65535", value_parser = port_parser )]
     ports: (u16, u16),
 
-    #[arg(short, long, default_value = 200)]
+    #[arg(short, long, default_value = "200")]
     timeout: u64,
 
-    #[arg(short, long, default_value_t = 1000)]
+    #[arg(short, long, default_value = "1000")]
     batch_size: usize,
 }
 
