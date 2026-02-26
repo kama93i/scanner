@@ -17,6 +17,13 @@ scanner -a 127.0.0.1 > scan.txt
 127.0.0.1:80
 ```
 
+### Instalation
+Clone repository and compile (make sure you have cargo installed)
+```
+git clone https://github.com/kama93i/scanner.git
+cargo build
+```
+
 
 # TODO
 - Vervose option for when piping stdout
