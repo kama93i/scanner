@@ -20,7 +20,7 @@ scanner -a 127.0.0.1 > scan.txt
 ### Instalation
 Clone repository and compile (make sure you have cargo installed)
 ```
-git clone https://github.com/kama93i/scanner.git
+git clone https://github.com/kama93i/scanner.git && cd scanner
 cargo build
 ```
 
