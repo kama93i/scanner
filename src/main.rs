@@ -80,7 +80,7 @@ async fn main() {
         .collect();
 
     eprintln!("Found {} open ports:", open_ports.len());
-    eprintln!("----------------------------");
+    eprintln!("--------------------");
     for p in &open_ports {
         println!("{}:{}", p.addr, p.port);
     }
