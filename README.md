@@ -26,5 +26,5 @@ cargo build --release
 
 
 # TODO
-- Stealth scan with pnet. Send SYN packet but dont establish TCP connection to not create logs on the victim machine.
+- Stealth scan with pnet crate. Send SYN packet but dont establish TCP connection to not create logs on the scanned machine.
 - Scan subnets
