@@ -26,5 +26,5 @@ cargo build --release
 
 
 # TODO
-- Vervose option for when piping stdout
 - Stealth scan with pnet. Send SYN packet but dont establish TCP connection to not create logs on the victim machine.
+- Scan subnets
